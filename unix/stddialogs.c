@@ -14,11 +14,12 @@ static char **filedialog_adv(GtkWindow *parent, GtkFileChooserAction mode, int m
 	gint response;
 	guint i, len;
 	GSList *list;
-	char **filenames;
-	filenames = malloc(2 * sizeof(const char *));
-	filenames[0] = malloc(1 * sizeof(const char *));
-	filenames[0][0] = NULL;
-	filenames[1] = NULL;
+	char **filenames=NULL;
+
+	if (multiple == FALSE) {
+		filenames = malloc(1 * sizeof(const char *));
+		filenames[0] = NULL;
+	}
 
 
 	filter = gtk_file_filter_new();
