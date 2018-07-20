@@ -114,7 +114,7 @@ out:
 		results->Release();
 	if (d != NULL)
 		d->Release();
-	if (names == NULL) {
+	if (names == NULL && !(opts & FOS_ALLOWMULTISELECT)) {
 		names = (char**) malloc((1) * sizeof(const char *));
 		names[0] = NULL;
 	}
