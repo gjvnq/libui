@@ -46,6 +46,25 @@ char *uiOpenFile(uiWindow *parent)
 	return runSavePanel(windowWindow(parent), o);
 }
 
+char *uiOpenFileAdv(uiWindow *parent, int multiple, const char *human_filter_msg, const char *patterns[])
+{
+	NSOpenPanel *o;
+
+	o = [NSOpenPanel openPanel];
+	[o setCanChooseFiles:YES];
+	[o setCanChooseDirectories:NO];
+	[o setResolvesAliases:NO];
+	if (multiple == FALSE) {
+		[o setAllowsMultipleSelection:NO];
+	} else {
+		[o setAllowsMultipleSelection:YES];
+	}
+	setupSavePanel(o);
+	// panel is autoreleased
+	return runSavePanel(windowWindow(parent), o);
+}
+
+
 char *uiSaveFile(uiWindow *parent)
 {
 	NSSavePanel *s;
