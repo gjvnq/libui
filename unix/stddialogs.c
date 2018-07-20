@@ -15,6 +15,11 @@ static char **filedialog_adv(GtkWindow *parent, GtkFileChooserAction mode, int m
 	guint i, len;
 	GSList *list;
 	char **filenames;
+	filenames = malloc(2 * sizeof(const char *));
+	filenames[0] = malloc(1 * sizeof(const char *));
+	filenames[0][0] = NULL;
+	filenames[1] = NULL;
+
 
 	filter = gtk_file_filter_new();
 	gtk_file_filter_set_name(filter, human_filter_msg);
@@ -40,10 +45,11 @@ static char **filedialog_adv(GtkWindow *parent, GtkFileChooserAction mode, int m
 	response = gtk_dialog_run(GTK_DIALOG(fcd));
 	if (response != GTK_RESPONSE_ACCEPT) {
 		gtk_widget_destroy(fcd);
-		return NULL;
+		return filenames;
 	}
 	list = gtk_file_chooser_get_filenames(fc);
 	len = g_slist_length(list);
+	free(filenames);
 	filenames = malloc((len+1) * sizeof(const char *));
 	if (filenames != NULL) {
 		for (i=0; i < len; i++) {
