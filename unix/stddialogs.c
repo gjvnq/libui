@@ -6,12 +6,23 @@
 
 #define windowWindow(w) (GTK_WINDOW(uiControlHandle(uiControl(w))))
 
-static char *filedialog(GtkWindow *parent, GtkFileChooserAction mode, const gchar *confirm)
+static char **filedialog_adv(GtkWindow *parent, GtkFileChooserAction mode, int multiple, const char *human_filter_msg, const char *patterns[], const gchar *confirm)
 {
 	GtkWidget *fcd;
 	GtkFileChooser *fc;
+	GtkFileFilter *filter;
 	gint response;
-	char *filename;
+	guint i, len;
+	GSList *list;
+	char **filenames;
+
+	filter = gtk_file_filter_new();
+	gtk_file_filter_set_name(filter, human_filter_msg);
+	if (patterns != NULL) {
+		for (int i = 0; patterns[i][0] != 0; i++) {
+			gtk_file_filter_add_pattern(filter, patterns[i]);
+		}
+	}
 
 	fcd = gtk_file_chooser_dialog_new(NULL, parent, mode,
 		"_Cancel", GTK_RESPONSE_CANCEL,
@@ -19,23 +30,46 @@ static char *filedialog(GtkWindow *parent, GtkFileChooserAction mode, const gcha
 		NULL);
 	fc = GTK_FILE_CHOOSER(fcd);
 	gtk_file_chooser_set_local_only(fc, FALSE);
-	gtk_file_chooser_set_select_multiple(fc, FALSE);
+	gtk_file_chooser_set_select_multiple(fc, multiple);
 	gtk_file_chooser_set_show_hidden(fc, TRUE);
 	gtk_file_chooser_set_do_overwrite_confirmation(fc, TRUE);
 	gtk_file_chooser_set_create_folders(fc, TRUE);
+	if (patterns != NULL) {
+		gtk_file_chooser_set_filter(fc, filter);
+	}
 	response = gtk_dialog_run(GTK_DIALOG(fcd));
 	if (response != GTK_RESPONSE_ACCEPT) {
 		gtk_widget_destroy(fcd);
 		return NULL;
 	}
-	filename = uiUnixStrdupText(gtk_file_chooser_get_filename(fc));
+	// filenames = uiUnixStrdupText(gtk_file_chooser_get_filenames(fc));
+	list = gtk_file_chooser_get_filenames(fc);
+	len = g_slist_length(list);
+	filenames = malloc((len+1) * sizeof(const char *));
+	if (filenames != NULL) {
+		for (i=0; i < len; i++) {
+			filenames[i] = uiUnixStrdupText(g_slist_nth_data(list, i));
+		}
+	}
+	filenames[i] = 0;
+	g_slist_free(list);
 	gtk_widget_destroy(fcd);
-	return filename;
+	return filenames;
+}
+
+static char *filedialog(GtkWindow *parent, GtkFileChooserAction mode, const gchar *confirm)
+{
+	return  filedialog_adv(parent, mode, FALSE, NULL, NULL, confirm)[0];
 }
 
 char *uiOpenFile(uiWindow *parent)
 {
 	return filedialog(windowWindow(parent), GTK_FILE_CHOOSER_ACTION_OPEN, "_Open");
+}
+
+char **uiOpenFileAdv(uiWindow *parent, int multiple, const char *human_filter_msg, const char *patterns[])
+{
+	return filedialog_adv(windowWindow(parent), GTK_FILE_CHOOSER_ACTION_OPEN, multiple, human_filter_msg, patterns, "_Open");
 }
 
 char *uiSaveFile(uiWindow *parent)

@@ -164,15 +164,19 @@ static uiWindow *mainwin;
 static void onOpenFileClicked(uiButton *b, void *data)
 {
 	uiEntry *entry = uiEntry(data);
-	char *filename;
+	char **filenames;
+	char *msg;
+	const char *patterns[] = {"*.jpg", "*.jpeg", "*.png", "*.bmp", "*.gif", ".webp", ""};
 
-	filename = uiOpenFile(mainwin);
-	if (filename == NULL) {
+	filenames = uiOpenFileAdv(mainwin, TRUE, "only images", patterns);
+	if (filenames == NULL) {
 		uiEntrySetText(entry, "(cancelled)");
 		return;
 	}
-	uiEntrySetText(entry, filename);
-	uiFreeText(filename);
+	msg = uiJoinStrArray(filenames, ";");
+	uiEntrySetText(entry, msg);
+	uiFreeText(msg);
+	uiFreeTextArray(filenames);
 }
 
 static void onSaveFileClicked(uiButton *b, void *data)
