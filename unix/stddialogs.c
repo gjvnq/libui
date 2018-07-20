@@ -19,7 +19,7 @@ static char **filedialog_adv(GtkWindow *parent, GtkFileChooserAction mode, int m
 	filter = gtk_file_filter_new();
 	gtk_file_filter_set_name(filter, human_filter_msg);
 	if (patterns != NULL) {
-		for (int i = 0; patterns[i][0] != 0; i++) {
+		for (int i = 0; patterns[i] != NULL; i++) {
 			gtk_file_filter_add_pattern(filter, patterns[i]);
 		}
 	}
