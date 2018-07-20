@@ -88,6 +88,13 @@ char *uiOpenFile(uiWindow *parent)
 	return res;
 }
 
+char **uiOpenFileAdv(uiWindow *parent, int multiple, const char *human_filter_msg, const char *patterns[])
+{
+	char *ans[] = {NULL, NULL};
+	ans[0] = uiOpenFile(parent);
+	return ans;
+}
+
 char *uiSaveFile(uiWindow *parent)
 {
 	char *res;
