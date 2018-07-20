@@ -16,14 +16,17 @@
 
 #define windowHWND(w) ((HWND) uiControlHandle(uiControl(w)))
 
-char *commonItemDialog(HWND parent, REFCLSID clsid, REFIID iid, FILEOPENDIALOGOPTIONS optsadd)
+char **commonItemDialog(HWND parent, REFCLSID clsid, REFIID iid, FILEOPENDIALOGOPTIONS optsadd, const char *human_filter_msg, const char **patterns)
 {
-	IFileDialog *d = NULL;
+	IFileOpenDialog  *d = NULL;
 	FILEOPENDIALOGOPTIONS opts;
 	IShellItem *result = NULL;
+	IShellItemArray *results = NULL;
 	WCHAR *wname = NULL;
-	char *name = NULL;
+	char **names = NULL;
 	HRESULT hr;
+	DWORD i, len;
+	
 
 	hr = CoCreateInstance(clsid,
 		NULL, CLSCTX_INPROC_SERVER,
@@ -46,6 +49,15 @@ char *commonItemDialog(HWND parent, REFCLSID clsid, REFIID iid, FILEOPENDIALOGOP
 		logHRESULT(L"error setting options", hr);
 		goto out;
 	}
+	// Prepare filter
+	if (human_filter_msg != NULL && patterns != NULL) {
+		COMDLG_FILTERSPEC rgSpec[] =
+		{ 
+			{ toUTF16(human_filter_msg), toUTF16(uiJoinStrArray(patterns, ";")) },
+		};
+		d->SetFileTypes(1, rgSpec);
+	}
+	// Show
 	hr = d->Show(parent);
 	if (hr == HRESULT_FROM_WIN32(ERROR_CANCELLED))
 		// cancelled; return NULL like we have ready
@@ -54,57 +66,102 @@ char *commonItemDialog(HWND parent, REFCLSID clsid, REFIID iid, FILEOPENDIALOGOP
 		logHRESULT(L"error showing dialog", hr);
 		goto out;
 	}
-	hr = d->GetResult(&result);
-	if (hr != S_OK) {
-		logHRESULT(L"error getting dialog result", hr);
-		goto out;
+	if (opts & FOS_ALLOWMULTISELECT) {
+		hr = d->GetResults(&results);
+		if (hr != S_OK) {
+			logHRESULT(L"error getting dialog result", hr);
+			goto out;
+		}
+		hr = results->GetCount(&len);
+		if (hr != S_OK) {
+			logHRESULT(L"error getting count", hr);
+			goto out;
+		}
+		names = (char**) malloc((len+1) * sizeof(const char *));
+		for (i = 0; i < len; i++) {
+			hr = results->GetItemAt(i, &result);
+			if (hr != S_OK) {
+				logHRESULT(L"error getting item", hr);
+				goto out;
+			}
+			hr = result->GetDisplayName(SIGDN_FILESYSPATH, &wname);
+			if (hr != S_OK) {
+				logHRESULT(L"error getting filename", hr);
+				goto out;
+			}
+			names[i] = toUTF8(wname);
+		}
+		names[i] = NULL;
+	} else {
+		names = (char**) malloc((2) * sizeof(const char *));
+		hr = d->GetResult(&result);
+		if (hr != S_OK) {
+			logHRESULT(L"error getting dialog result", hr);
+			goto out;
+		}
+		hr = result->GetDisplayName(SIGDN_FILESYSPATH, &wname);
+		if (hr != S_OK) {
+			logHRESULT(L"error getting filename", hr);
+			goto out;
+		}
+		names[0] = toUTF8(wname);
 	}
-	hr = result->GetDisplayName(SIGDN_FILESYSPATH, &wname);
-	if (hr != S_OK) {
-		logHRESULT(L"error getting filename", hr);
-		goto out;
-	}
-	name = toUTF8(wname);
-
+		
 out:
 	if (wname != NULL)
 		CoTaskMemFree(wname);
-	if (result != NULL)
-		result->Release();
+	if (results != NULL)
+		results->Release();
 	if (d != NULL)
 		d->Release();
-	return name;
+	if (names == NULL) {
+		names = (char**) malloc((1) * sizeof(const char *));
+		names[0] = NULL;
+	}
+	return names;
 }
 
 char *uiOpenFile(uiWindow *parent)
 {
-	char *res;
+	char **res;
 
 	disableAllWindowsExcept(parent);
 	res = commonItemDialog(windowHWND(parent),
 		CLSID_FileOpenDialog, IID_IFileOpenDialog,
-		FOS_NOCHANGEDIR | FOS_ALLNONSTORAGEITEMS | FOS_NOVALIDATE | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_SHAREAWARE | FOS_NOTESTFILECREATE | FOS_NODEREFERENCELINKS | FOS_FORCESHOWHIDDEN | FOS_DEFAULTNOMINIMODE);
+		FOS_NOCHANGEDIR | FOS_ALLNONSTORAGEITEMS | FOS_NOVALIDATE | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_SHAREAWARE | FOS_NOTESTFILECREATE | FOS_NODEREFERENCELINKS | FOS_FORCESHOWHIDDEN | FOS_DEFAULTNOMINIMODE,
+		NULL,
+		NULL);
 	enableAllWindowsExcept(parent);
-	return res;
+	return res[0];
 }
 
 char **uiOpenFileAdv(uiWindow *parent, int multiple, const char *human_filter_msg, const char *patterns[])
 {
-	char *ans[] = {NULL, NULL};
-	ans[0] = uiOpenFile(parent);
-	return ans;
+	char **res = {NULL};
+	FILEOPENDIALOGOPTIONS mult = (multiple != 0)? FOS_ALLOWMULTISELECT : 0;
+	
+	disableAllWindowsExcept(parent);
+	res = commonItemDialog(windowHWND(parent),
+		CLSID_FileOpenDialog, IID_IFileOpenDialog,
+		mult | FOS_NOCHANGEDIR | FOS_ALLNONSTORAGEITEMS | FOS_NOVALIDATE | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_SHAREAWARE | FOS_NOTESTFILECREATE | FOS_NODEREFERENCELINKS | FOS_FORCESHOWHIDDEN | FOS_DEFAULTNOMINIMODE,
+		human_filter_msg,
+		patterns);
+	enableAllWindowsExcept(parent);
+	return res;
 }
 
 char *uiSaveFile(uiWindow *parent)
 {
-	char *res;
+	char **res;
 
 	disableAllWindowsExcept(parent);
 	res = commonItemDialog(windowHWND(parent),
 		CLSID_FileSaveDialog, IID_IFileSaveDialog,
-		FOS_OVERWRITEPROMPT | FOS_NOCHANGEDIR | FOS_ALLNONSTORAGEITEMS | FOS_NOVALIDATE | FOS_SHAREAWARE | FOS_NOTESTFILECREATE | FOS_NODEREFERENCELINKS | FOS_FORCESHOWHIDDEN | FOS_DEFAULTNOMINIMODE);
+		FOS_OVERWRITEPROMPT | FOS_NOCHANGEDIR | FOS_ALLNONSTORAGEITEMS | FOS_NOVALIDATE | FOS_SHAREAWARE | FOS_NOTESTFILECREATE | FOS_NODEREFERENCELINKS | FOS_FORCESHOWHIDDEN | FOS_DEFAULTNOMINIMODE,
+		NULL,
+		NULL);
 	enableAllWindowsExcept(parent);
-	return res;
+	return res[0];
 }
 
 // TODO switch to TaskDialogIndirect()?
