@@ -166,7 +166,7 @@ static void onOpenFileClicked(uiButton *b, void *data)
 	uiEntry *entry = uiEntry(data);
 	char **filenames;
 	char *msg;
-	const char *patterns[] = {"*.jpg", "*.jpeg", "*.png", "*.bmp", "*.gif", ".webp", ""};
+	const char *patterns[] = {"*.jpg", "*.jpeg", "*.png", "*.bmp", "*.gif", ".webp", NULL};
 
 	filenames = uiOpenFileAdv(mainwin, TRUE, "only images", patterns);
 	if (filenames == NULL) {

@@ -41,7 +41,7 @@ void uiFreeText(char *text)
 void uiFreeTextArray(char **array)
 {
 	for (int i=0; array[i] != NULL; i++) {
-		g_free(array[i]);
+		uiprivFree(array[i]);
 	}
 }
 
@@ -53,7 +53,7 @@ char *uiJoinStrArray(const char **array, const char *joiner)
 		mem += strlen(array[i]) + strlen(joiner);
 	}
 	// Create our answer
-	char *msg = malloc((mem+2) * sizeof(char));
+	char *msg = (char *) malloc((mem+2) * sizeof(char));
 	size_t k = 0;
 	for (size_t i=0; array[i] != NULL; i++) {
 		for (size_t j=0; j < strlen(array[i]); j++) {

@@ -42,7 +42,6 @@ static char **filedialog_adv(GtkWindow *parent, GtkFileChooserAction mode, int m
 		gtk_widget_destroy(fcd);
 		return NULL;
 	}
-	// filenames = uiUnixStrdupText(gtk_file_chooser_get_filenames(fc));
 	list = gtk_file_chooser_get_filenames(fc);
 	len = g_slist_length(list);
 	filenames = malloc((len+1) * sizeof(const char *));
