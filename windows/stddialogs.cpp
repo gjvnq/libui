@@ -16,7 +16,7 @@
 
 #define windowHWND(w) ((HWND) uiControlHandle(uiControl(w)))
 
-char **commonItemDialog(HWND parent, REFCLSID clsid, REFIID iid, FILEOPENDIALOGOPTIONS optsadd, const char *human_filter_msg, const char **patterns)
+char **commonItemDialog(HWND parent, REFCLSID clsid, REFIID iid, FILEOPENDIALOGOPTIONS optsadd, const char *message, const char **patterns)
 {
 	IFileOpenDialog  *d = NULL;
 	FILEOPENDIALOGOPTIONS opts;
@@ -36,6 +36,12 @@ char **commonItemDialog(HWND parent, REFCLSID clsid, REFIID iid, FILEOPENDIALOGO
 		// always return NULL on error
 		goto out;
 	}
+	if (message != NULL) {
+		hr = d->SetTitle(message);
+		if (hr != S_OK) {
+			logHRESULT(L"failed to set title", hr);
+		}
+	}
 	hr = d->GetOptions(&opts);
 	if (hr != S_OK) {
 		logHRESULT(L"error getting current options", hr);
@@ -50,10 +56,10 @@ char **commonItemDialog(HWND parent, REFCLSID clsid, REFIID iid, FILEOPENDIALOGO
 		goto out;
 	}
 	// Prepare filter
-	if (human_filter_msg != NULL && patterns != NULL) {
+	if (message != NULL && patterns != NULL) {
 		COMDLG_FILTERSPEC rgSpec[] =
 		{ 
-			{ toUTF16(human_filter_msg), toUTF16(uiJoinStrArray(patterns, ";")) },
+			{ toUTF16(""), toUTF16(uiJoinStrArray(patterns, ";")) },
 		};
 		d->SetFileTypes(1, rgSpec);
 	}
@@ -123,19 +129,10 @@ out:
 
 char *uiOpenFile(uiWindow *parent)
 {
-	char **res;
-
-	disableAllWindowsExcept(parent);
-	res = commonItemDialog(windowHWND(parent),
-		CLSID_FileOpenDialog, IID_IFileOpenDialog,
-		FOS_NOCHANGEDIR | FOS_ALLNONSTORAGEITEMS | FOS_NOVALIDATE | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_SHAREAWARE | FOS_NOTESTFILECREATE | FOS_NODEREFERENCELINKS | FOS_FORCESHOWHIDDEN | FOS_DEFAULTNOMINIMODE,
-		NULL,
-		NULL);
-	enableAllWindowsExcept(parent);
-	return res[0];
+	return uiOpenFileAdv(parent, FALSE, NULL, NULL)[0];
 }
 
-char **uiOpenFileAdv(uiWindow *parent, int multiple, const char *human_filter_msg, const char *patterns[])
+char **uiOpenFileAdv(uiWindow *parent, int multiple, const char *message, const char *patterns[])
 {
 	char **res = {NULL};
 	FILEOPENDIALOGOPTIONS mult = (multiple != 0)? FOS_ALLOWMULTISELECT : 0;
@@ -144,7 +141,7 @@ char **uiOpenFileAdv(uiWindow *parent, int multiple, const char *human_filter_ms
 	res = commonItemDialog(windowHWND(parent),
 		CLSID_FileOpenDialog, IID_IFileOpenDialog,
 		mult | FOS_NOCHANGEDIR | FOS_ALLNONSTORAGEITEMS | FOS_NOVALIDATE | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_SHAREAWARE | FOS_NOTESTFILECREATE | FOS_NODEREFERENCELINKS | FOS_FORCESHOWHIDDEN | FOS_DEFAULTNOMINIMODE,
-		human_filter_msg,
+		message,
 		patterns);
 	enableAllWindowsExcept(parent);
 	return res;
@@ -152,14 +149,19 @@ char **uiOpenFileAdv(uiWindow *parent, int multiple, const char *human_filter_ms
 
 char *uiSaveFile(uiWindow *parent)
 {
+	return uiSaveAdvFile(parent, NULL, NULL);
+}
+
+char *uiSaveAdvFile(uiWindow *parent, const char *message, const char *patterns[])
+{
 	char **res;
 
 	disableAllWindowsExcept(parent);
 	res = commonItemDialog(windowHWND(parent),
 		CLSID_FileSaveDialog, IID_IFileSaveDialog,
 		FOS_OVERWRITEPROMPT | FOS_NOCHANGEDIR | FOS_ALLNONSTORAGEITEMS | FOS_NOVALIDATE | FOS_SHAREAWARE | FOS_NOTESTFILECREATE | FOS_NODEREFERENCELINKS | FOS_FORCESHOWHIDDEN | FOS_DEFAULTNOMINIMODE,
-		NULL,
-		NULL);
+		message,
+		patterns);
 	enableAllWindowsExcept(parent);
 	return res[0];
 }
