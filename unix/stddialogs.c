@@ -6,7 +6,7 @@
 
 #define windowWindow(w) (GTK_WINDOW(uiControlHandle(uiControl(w))))
 
-static char **filedialog_adv(GtkWindow *parent, GtkFileChooserAction mode, int multiple, const char *human_filter_msg, const char *patterns[], const gchar *confirm)
+static char **filedialog_adv(GtkWindow *parent, GtkFileChooserAction mode, int multiple, const char *message, const char *patterns[], const gchar *confirm)
 {
 	GtkWidget *fcd;
 	GtkFileChooser *fc;
@@ -23,14 +23,14 @@ static char **filedialog_adv(GtkWindow *parent, GtkFileChooserAction mode, int m
 
 
 	filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(filter, human_filter_msg);
+	gtk_file_filter_set_name(filter, message);
 	if (patterns != NULL) {
 		for (int i = 0; patterns[i] != NULL; i++) {
 			gtk_file_filter_add_pattern(filter, patterns[i]);
 		}
 	}
 
-	fcd = gtk_file_chooser_dialog_new(NULL, parent, mode,
+	fcd = gtk_file_chooser_dialog_new(message, parent, mode,
 		"_Cancel", GTK_RESPONSE_CANCEL,
 		confirm, GTK_RESPONSE_ACCEPT,
 		NULL);
@@ -73,14 +73,19 @@ char *uiOpenFile(uiWindow *parent)
 	return filedialog(windowWindow(parent), GTK_FILE_CHOOSER_ACTION_OPEN, "_Open");
 }
 
-char **uiOpenFileAdv(uiWindow *parent, int multiple, const char *human_filter_msg, const char *patterns[])
+char **uiOpenFileAdv(uiWindow *parent, int multiple, const char *message, const char *patterns[])
 {
-	return filedialog_adv(windowWindow(parent), GTK_FILE_CHOOSER_ACTION_OPEN, multiple, human_filter_msg, patterns, "_Open");
+	return filedialog_adv(windowWindow(parent), GTK_FILE_CHOOSER_ACTION_OPEN, multiple, message, patterns, "_Open");
 }
 
 char *uiSaveFile(uiWindow *parent)
 {
 	return filedialog(windowWindow(parent), GTK_FILE_CHOOSER_ACTION_SAVE, "_Save");
+}
+
+char *uiSaveFileAdv(uiWindow *parent, const char *message, const char *patterns[])
+{
+	return filedialog_adv(windowWindow(parent), GTK_FILE_CHOOSER_ACTION_SAVE, FALSE, message, patterns, "_Save")[0];
 }
 
 static void msgbox(GtkWindow *parent, const char *title, const char *description, GtkMessageType type, GtkButtonsType buttons)

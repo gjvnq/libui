@@ -168,7 +168,7 @@ static void onOpenFileClicked(uiButton *b, void *data)
 	char *msg;
 	const char *patterns[] = {"*.jpg", "*.jpeg", "*.png", "*.bmp", "*.gif", ".webp", NULL};
 
-	filenames = uiOpenFileAdv(mainwin, TRUE, "only images", patterns);
+	filenames = uiOpenFileAdv(mainwin, TRUE, "Select an image, plase", patterns);
 	if (filenames == NULL) {
 		uiEntrySetText(entry, "(cancelled)");
 		return;
@@ -183,8 +183,9 @@ static void onSaveFileClicked(uiButton *b, void *data)
 {
 	uiEntry *entry = uiEntry(data);
 	char *filename;
+	const char *patterns[] = {"*.jpg", "*.jpeg", "*.png", "*.bmp", "*.gif", ".webp", NULL};
 
-	filename = uiSaveFile(mainwin);
+	filename = uiSaveFileAdv(mainwin, "What should the new image be called?", patterns);
 	if (filename == NULL) {
 		uiEntrySetText(entry, "(cancelled)");
 		return;
