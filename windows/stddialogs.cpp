@@ -37,7 +37,7 @@ char **commonItemDialog(HWND parent, REFCLSID clsid, REFIID iid, FILEOPENDIALOGO
 		goto out;
 	}
 	if (message != NULL) {
-		hr = d->SetTitle(message);
+		hr = d->SetTitle(toUTF16(message));
 		if (hr != S_OK) {
 			logHRESULT(L"failed to set title", hr);
 		}
@@ -147,12 +147,7 @@ char **uiOpenFileAdv(uiWindow *parent, int multiple, const char *message, const 
 	return res;
 }
 
-char *uiSaveFile(uiWindow *parent)
-{
-	return uiSaveAdvFile(parent, NULL, NULL);
-}
-
-char *uiSaveAdvFile(uiWindow *parent, const char *message, const char *patterns[])
+char *uiSaveFileAdv(uiWindow *parent, const char *message, const char *patterns[])
 {
 	char **res;
 
@@ -164,6 +159,11 @@ char *uiSaveAdvFile(uiWindow *parent, const char *message, const char *patterns[
 		patterns);
 	enableAllWindowsExcept(parent);
 	return res[0];
+}
+
+char *uiSaveFile(uiWindow *parent)
+{
+	return uiSaveFileAdv(parent, NULL, NULL);
 }
 
 // TODO switch to TaskDialogIndirect()?
