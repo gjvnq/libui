@@ -32,6 +32,31 @@ static char *runSavePanel(NSWindow *parent, NSSavePanel *s)
 	return filename;
 }
 
+static char **runOpenPanel(NSWindow *parent, NSOpenPanel *s)
+{
+	char **filenames;
+	int len, i;
+
+	filenames = malloc(1 * sizeof(const char *));
+	filenames[0] = NULL;
+
+	[s beginSheetModalForWindow:parent completionHandler:^(NSInteger result) {
+		[uiprivNSApp() stopModalWithCode:result];
+	}];
+	if ([uiprivNSApp() runModalForWindow:s] != NSFileHandlingPanelOKButton)
+		return filenames;
+
+	urls = [s URLS];
+	len = [urls count];
+	free(filenames);
+	filenames = malloc((len+1) * sizeof(char *));
+	for (i=0; i < len; i++) {
+		filenames[i] = uiDarwinNSStringToText([urls[i] path]);
+	}
+
+	return filenames;
+}
+
 char *uiOpenFile(uiWindow *parent)
 {
 	NSOpenPanel *o;
@@ -46,7 +71,7 @@ char *uiOpenFile(uiWindow *parent)
 	return runSavePanel(windowWindow(parent), o);
 }
 
-char *uiOpenFileAdv(uiWindow *parent, int multiple, const char *human_filter_msg, const char *patterns[])
+char **uiOpenFileAdv(uiWindow *parent, int multiple, const char *message, const char *patterns[])
 {
 	NSOpenPanel *o;
 
@@ -54,25 +79,60 @@ char *uiOpenFileAdv(uiWindow *parent, int multiple, const char *human_filter_msg
 	[o setCanChooseFiles:YES];
 	[o setCanChooseDirectories:NO];
 	[o setResolvesAliases:NO];
+	[o setMessage:[NSString stringWithUTF8String:message]];
 	if (multiple == FALSE) {
 		[o setAllowsMultipleSelection:NO];
 	} else {
 		[o setAllowsMultipleSelection:YES];
 	}
+	if (patterns != NULL) {
+		NSMutableArray *allowed_types<NSString *> = [NSMutableArray arrayWithCapacity:0];
+		for (int i=0; patterns[i] != NULL; i++) {
+			[allowed_types AddObject:[NSString stringWithUTF8String:patterns[i]]];
+		}
+
+		[o allowsOtherFileTypes:NO];
+		[o allowedFileTypes:allowed_types];
+	}
 	setupSavePanel(o);
 	// panel is autoreleased
-	return runSavePanel(windowWindow(parent), o);
+	return runOpenPanel(windowWindow(parent), o);
 }
 
 
 char *uiSaveFile(uiWindow *parent)
 {
-	NSSavePanel *s;
+	return uiSaveFileAdv(parent, NULL, NULL);
+}
 
-	s = [NSSavePanel savePanel];
-	setupSavePanel(s);
+char *uiSaveFileAdv(uiWindow *parent, const char *message, const char *patterns[])
+{
+	NSSavePanel *o;
+
+	o = [NSOpenPanel openPanel];
+	[o setCanChooseFiles:YES];
+	[o setCanChooseDirectories:NO];
+	[o setResolvesAliases:NO];
+	if (message != NULL) {
+		[o setMessage:[NSString stringWithUTF8String:message]];
+	}
+	if (multiple == FALSE) {
+		[o setAllowsMultipleSelection:NO];
+	} else {
+		[o setAllowsMultipleSelection:YES];
+	}
+	if (patterns != NULL) {
+		NSMutableArray *allowed_types<NSString *> = [NSMutableArray arrayWithCapacity:0];
+		for (int i=0; patterns[i] != NULL; i++) {
+			[allowed_types AddObject:[NSString stringWithUTF8String:patterns[i]]];
+		}
+
+		[o allowsOtherFileTypes:NO];
+		[o allowedFileTypes:allowed_types];
+	}
+	setupSavePanel(o);
 	// panel is autoreleased
-	return runSavePanel(windowWindow(parent), s);
+	return runSavePanel(windowWindow(parent), o);
 }
 
 // I would use a completion handler for NSAlert as well, but alas NSAlert's are 10.9 and higher only
